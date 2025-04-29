@@ -1,7 +1,7 @@
 from kafka import KafkaConsumer
 import json
 
-
+# asd
 consumer = KafkaConsumer(
     'alerts',
     bootstrap_servers=['localhost:9092'],

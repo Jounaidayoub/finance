@@ -17,6 +17,7 @@ for message in consumer:
     
         
         
+        
     detect.delay(message.value[0])
     print('\a')
     print("Received message:", message.value[0], message.value[1], "ALERT" if abs(
