@@ -29,10 +29,7 @@ def detect(price):
     producer=Producer.getproducer()
     
 
-    
-    # producer.send("alert", value=price)
-    # producer.flush()
-    
+   
     redis_key="last_10"
     redis.lpush(redis_key, price[4])
     redis.ltrim(redis_key, 0, 9)
