@@ -43,7 +43,7 @@ for i in range(len(data)):
     # print(data[i],"diff:", diff,end='\n')
     prev = float(data[i][1])
     prev = round(prev, 2)
-    sleep(1/1000000000000000000000000)  # Sleep for 1 minute between each line of data
+    sleep(1/1000000)  # Sleep for 1 minute between each line of data
     # os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console for the next line
 
 producer.flush()

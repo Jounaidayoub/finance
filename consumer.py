@@ -19,7 +19,7 @@ for message in consumer:
         
         
     detect.delay(message.value[0])
-    print('\a')
+    # print('\a')
     print("Received message:", message.value[0], message.value[1], "ALERT" if abs(
         message.value[1]) > 1.5 else "No Alert")
     # Process the message as needed
