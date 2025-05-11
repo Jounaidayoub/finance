@@ -2,9 +2,14 @@ from celery import Celery
 from kafka import KafkaProducer
 import json
 from redis import Redis
+from datetime import datetime
+from elasticsearch import Elasticsearch
+
+
 class Producer:
     
     _prod=None
+    _elasticsearch=None
     @classmethod
     def getproducer(cls):
         if cls._prod==None:
@@ -15,14 +20,22 @@ class Producer:
         
         
         return cls._prod
-    # producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
-    #                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+    
+    # @classmethod
+    
+        
+    #     return cls._prod
+    # # producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
+    # #                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 
 
 redis=Redis(host='localhost', port=6379, db=0, decode_responses=True)
 app = Celery("tasks",
              broker="redis://localhost:6379/0")
 
+
+
+es=Elasticsearch("http://localhost:9200")
 
 
 @app.task
@@ -67,7 +80,56 @@ def detect(price):
     
     if abs(z_score)>2.5:
         message=f"🟥ALERT[{drop,"%"}]: Price {price[4]} has a high z_score {z_score}"
+        # from elasticsearch import Elasticsearch
+        # from datetime import datetime
+        # es=Elasticsearch("http://localhost:9200",
+        #              # http_auth=("elastic", "password"),
+        #              )
+        """
+        {
+  "mappings": {
+    "properties": {
+      "data_point": {
+        "type": "float"
+      },
+      "details": {
+        "type": "nested"
+      },
+      "full_record": {
+        "type": "text"
+      },
+      "symbol": {
+        "type": "keyword"
+      },
+      "timestamp": {
+        "type": "date"
+      },
+      "timestamp_detection": {
+        "type": "date"
+      },
+      "type": {
+        "type": "keyword"
+      }
+    }
+  }
+}"""
+        es.index(index="alerts", document={
+            "symbol": price[0],
+            "price": price[4],
+            "timestamp": datetime.now().isoformat(),
+            "alert_type": "drop",
+            "drop_percentage": drop,
+            "timestamp_detection": datetime.now().isoformat(),
+            "data_point": price[4],
+            "full_record": price,
+            "details": {
+                "z_score": z_score,
+                "mean": mean,
+                "std_dev": std
+            }
+        })
         producer.send("alerts", value=message)
+        
     
         producer.flush()
         return f"🟥 ALERT : Price {price} has been sent to the alerts toc"
