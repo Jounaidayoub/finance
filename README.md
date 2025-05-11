@@ -7,34 +7,16 @@ To build a system that monitors real-time financial data streams (stocks, crypto
 ## 2. Architecture Overview
 
 The system follows a distributed, event-driven architecture using the following core components:
-
 ```mermaid
-graph LR
-    A[Simulated Data Source] --> B(Kafka: financial_prices);
-    B -- Price Stream --> C{Celery Workers :Anomaly Detection};
-    C -- Anomaly? --> D[Alerting Log/API];
-    C -- Raw Data/Anomalies --> E(Elasticsearch);
-    F[Airflow] -- Schedules --> G{Batch Analysis Task <DAG>};
-    G -- Queries --> E;
-    G -- Generates --> H[Daily Report];
-    I[FastAPI] -- Queries --> E;
-    J[User/Client] --> I;
-
-    subgraph Real-time Processing
-        B; C; D;
-    end
-
-    subgraph Data Storage & History
-        E;
-    end
-
-    subgraph Batch Processing & Reporting
-        F; G; H;
-    end
-
-    subgraph API Access
-        I; J;
-    end
+---
+config:
+      theme: redux
+---
+flowchart TD
+        A(["Start"])
+        A --> B{"Decision"}
+        B --> C["Option A"]
+        B --> D["Option B"]
 ```
 
 *   **Data Ingestion:** Simulated financial data is published to a Kafka topic.
