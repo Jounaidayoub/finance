@@ -10,19 +10,21 @@ The system follows a distributed, event-driven architecture using the following 
 
 ```mermaid
 graph LR
-    A[Simulated Data Source] --> B(Kafka: financial_prices);
+    A[data source] --> B(Kafka: financial_prices);
     B -- Price Stream --> C{Celery Workers :Anomaly Detection};
     C -- Anomaly? --> D[Alerting Log/API];
-    C -- Raw Data/Anomalies --> E(Elasticsearch);
+    C -- Raw Data/Anomalies --> E[("fa fa-database Elasticsearch")];
     F[Airflow] -- Schedules --> G{Batch Analysis Task <DAG>};
     G -- Queries --> E;
     G -- Generates --> H[Daily Report];
-    I[FastAPI] -- Queries --> E;
+    I[FastAPI] -- "fa-search Queries" --> E;
     J[User/Client] --> I;
 
-    subgraph Real-time Processing
-        B; C; D;
-    end
+  
+
+    %% subgraph Real-time Processing
+    %%     B; C; D;
+    %% end
 
     subgraph Data Storage & History
         E;
