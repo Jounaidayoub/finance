@@ -1,0 +1,43 @@
+Here's a report summarizing the anomaly detection results:
+
+**Anomaly Detection Report**
+
+**Data Source:** anomalies_test index
+
+**Report Generation Date:** 2024-11-20 (Based on the timestamp_detection values within the data)
+
+**Analysis Period:**  Primarily April 2025 (specifically, April 7th, 8th, 9th, 10th, 11th, 14th, 15th, 16th and 17th)
+
+**Report Summary:**
+
+The analysis identified 102 anomaly events related to price drops.  These events were detected on 2025-05-14 between 17:26 and 17:40. All the shards were successfully processed and no timeout was experienced.
+
+**Key Metrics:**
+
+*   **Total Anomalies Detected:** 102
+*   **Alert Type:** drop
+*   **Max Score:** 1.0
+*   **Timed Out:** False
+
+**Detailed Findings:**
+
+The following table contains detailed information for the first few detected anomalies. Only the first three rows are included for brevity.
+
+| Symbol Timestamp      | Price     | Alert Type | Drop Percentage | Z-Score   | Mean       | Standard Deviation |
+| :-------------------- | :-------- | :--------- | :---------------- | :-------- | :--------- | :----------------- |
+| 2025-04-07 13:28:00 | 231.8000 | drop      | 0.0               | 2.751574 | 230.99525 | 0.292469           |
+| 2025-04-07 13:29:00 | 233.1699 | drop      | 0.0               | 2.755790 | 231.24124 | 0.699857           |
+| 2025-04-07 10:10:00 | 235.1450 | drop      | 0.0               | 2.795402 | 229.03499 | 2.185736           |
+
+**Analysis Notes:**
+
+*   **Z-Score Interpretation:** Z-scores indicate how many standard deviations a data point is from the mean.  Values significantly above or below zero (e.g., outside of +/- 2.5) are typically considered anomalous. The provided data include both positive and negative z-scores. Positive scores would indicate a price higher than the mean, whereas negative scores indicate a price lower than the mean.
+*   **Drop Percentage:** Represents the percentage of the observed price drop at the time of the anomaly.
+*   **Timestamp Discrepancy:** The anomaly detection timestamp (timestamp\_detection) is significantly later than the actual event timestamp (timestamp). This could indicate a delay in the detection process.
+
+**Recommendations:**
+
+1.  Investigate the cause of the price drops, particularly for instances with large drop percentages or high z-score magnitudes.
+2.  Examine the anomaly detection pipeline for potential delays in detection, comparing "timestamp" with "timestamp\_detection" to determine the end-to-end latency.
+3.  Consider adjusting anomaly detection thresholds (e.g., Z-score threshold) to optimize the balance between sensitivity and false positives.
+
