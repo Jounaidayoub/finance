@@ -1,15 +1,16 @@
 from celery import Celery
-from kafka import KafkaProducer
 import json
 from redis import Redis
 from datetime import datetime
-from elasticsearch import Elasticsearch
+
+
 from google import genai
 # from airflow_ import tasks____
 # import generate 
 from reporting import get_anomalies
 
 import os
+from Connection import Connection
 # from json import dumps
 # import json
 # from datetime import datetime
@@ -18,43 +19,15 @@ import os
 
 
 
-class Connection:
-    
-    _prod=None
-    _elasticsearch=None
-    @classmethod
-    def getproducer(cls):
-        if cls._prod==None:
-            print("thsi whe craetaing an instacce")
-            cls._prod=KafkaProducer(bootstrap_servers=['localhost:9092'],
-                            value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-        else:print("here it already There")
-        
-        
-        return cls._prod
-    
-    @classmethod
-    def get_elasticsearch(cls):
-        if cls._elasticsearch==None:
-            # print("thsi whe craetaing an instacce")
-            cls._elasticsearch=Elasticsearch(
-                hosts=["http://localhost:9200"],
-                
-            )
-        # else:print("here it already There")
-        
-        
-        return cls._elasticsearch
-    
-        
+ 
 
-redis=Redis(host='localhost', port=6379, db=0, decode_responses=True)
+# redis=Redis(host='localhost', port=6379, db=0, decode_responses=True)
 app = Celery("tasks",
              broker="redis://localhost:6379/0")
 
 
 
-es=Elasticsearch("http://localhost:9200")
+# es=Elasticsearch("http://localhost:9200")
 
 
 @app.task
@@ -62,8 +35,8 @@ def detect(price):
     producer=Connection.getproducer()
     
 
-   
-    redis_key="last_10"
+    redis=Connection.get_redis()
+    redis_key="last_10_prices"
     redis.lpush(redis_key, price[4])
     redis.ltrim(redis_key, 0, 9)
     
