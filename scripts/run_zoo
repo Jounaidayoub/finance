@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Start ZooKeeper
+echo "Starting ZooKeeper..."
+cd kafka_2.13-3.9.0 && bin/zookeeper-server-start.sh ./config/zookeeper.properties 
+# ZOOKEEPER_PID=$!
+# sleep 5
+
+# # Start Kafka
+# echo "Starting Kafka Server..."
+# kafka_2.13-3.9.0/bin/kafka-server-start.sh ./config/server.properties &
+# KAFKA_PID=$!
+
+# # Optional: wait for both to finish
+# wait $ZOOKEEPER_PID
+# wait $KAFKA_PID
