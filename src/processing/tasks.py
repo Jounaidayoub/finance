@@ -7,7 +7,7 @@ from elasticsearch import Elasticsearch
 from google import genai
 # from airflow_ import tasks____
 # import generate 
-
+from reporting import get_anomalies
 
 import os
 # from json import dumps
@@ -15,37 +15,10 @@ import os
 # from datetime import datetime
 # from elasticsearch import Elasticsearch
 
-client = Elasticsearch(
-    hosts=["http://localhost:9200"],
-    
-)
-
-def get_anomalies(start_date, end_date):
-    """Get anomalies from Elasticsearch within a date range.
-    note: The date format should be in ISO 8601 format.
-    example:
-    2025-04-01T00:00:00
-    """
-    resp = client.search(
-        index="anomalies_test",
-        from_=0,
-        size=10000,
-        query={
-            "range": {
-                "timestamp_detection": {
-                    "gte": start_date,
-                    "lte": end_date
-                }
-            }
-        },
-    )
-    
-    return resp
 
 
 
-
-class Producer:
+class Connection:
     
     _prod=None
     _elasticsearch=None
@@ -60,13 +33,20 @@ class Producer:
         
         return cls._prod
     
-    # @classmethod
+    @classmethod
+    def get_elasticsearch(cls):
+        if cls._elasticsearch==None:
+            # print("thsi whe craetaing an instacce")
+            cls._elasticsearch=Elasticsearch(
+                hosts=["http://localhost:9200"],
+                
+            )
+        # else:print("here it already There")
+        
+        
+        return cls._elasticsearch
     
         
-    #     return cls._prod
-    # # producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
-    # #                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-
 
 redis=Redis(host='localhost', port=6379, db=0, decode_responses=True)
 app = Celery("tasks",
@@ -79,7 +59,7 @@ es=Elasticsearch("http://localhost:9200")
 
 @app.task
 def detect(price):
-    producer=Producer.getproducer()
+    producer=Connection.getproducer()
     
 
    
@@ -124,34 +104,7 @@ def detect(price):
         # es=Elasticsearch("http://localhost:9200",
         #              # http_auth=("elastic", "password"),
         #              )
-        """
-        {
-  "mappings": {
-    "properties": {
-      "data_point": {
-        "type": "float"
-      },
-      "details": {
-        "type": "nested"
-      },
-      "full_record": {
-        "type": "text"
-      },
-      "symbol": {
-        "type": "keyword"
-      },
-      "timestamp": {
-        "type": "date"
-      },
-      "timestamp_detection": {
-        "type": "date"
-      },
-      "type": {
-        "type": "keyword"
-      }
-    }
-  }
-}"""
+   
         formatted_date=datetime.strptime(price[0], "%Y-%m-%d %H:%M:%S")
         es.index(index="anomalies_test", document={
             "symbol": price[0],
@@ -182,7 +135,7 @@ def detect(price):
     
 @app.task
 def generate_report():
-    result=get_anomalies("2025-04-01T00:00:00", datetime.now().isoformat())
+    result=get_anomalies("2025-04-01T00:00:00", datetime.now().isoformat(), client=Connection.get_elasticsearch())
     print("the result is :", result)
     # from google import genai
 
