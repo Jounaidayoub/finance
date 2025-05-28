@@ -77,10 +77,10 @@ def detect(price):
         # es=Elasticsearch("http://localhost:9200",
         #              # http_auth=("elastic", "password"),
         #              )
-   
+        es=Connection.get_elasticsearch()
         formatted_date=datetime.strptime(price[0], "%Y-%m-%d %H:%M:%S")
         es.index(index="anomalies_test", document={
-            "symbol": price[0],
+            "symbol": "TSLA",
             "price": price[4],
             "timestamp": formatted_date.isoformat(),
             "alert_type": "drop",

@@ -23,6 +23,18 @@ def read_root():
 
 
 @app.get("/alerts")
+# 
 def anomalies(from_: str=Query(alias="from"), to: str=Query(alias="to")):
-    
+    # I use from_ because form is a python keyword , peak documentation
     return get_anomalies(from_, to)
+
+
+
+@app.get("/alerts/{symbol}/")
+def get_anomalies_by_symbol(symbol:str , from_: str=Query(alias="from"), to: str=Query(alias="to")):
+    """
+    Get anomalies for a specific symbol within a date range.
+    """
+    resp = get_anomalies(from_, to, symbol=symbol)
+   
+    return resp
