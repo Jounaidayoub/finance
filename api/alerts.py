@@ -7,7 +7,7 @@ from elasticsearch import Elasticsearch
 # import os
 
 
-def get_anomalies(start_date, end_date, client=None):
+def get_anomalies(start_date, end_date, client=None,symbol=None):
     
     if client is None:
         client = Elasticsearch(
@@ -19,22 +19,36 @@ def get_anomalies(start_date, end_date, client=None):
     example:
     2025-04-01T00:00:00
     """
+    query = {
+            "bool": {
+                "must": [
+                    {   
+                        
+                    
+                        "range": {
+                            "timestamp": {
+                                "gte": start_date,
+                                "lte": end_date
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    if symbol:
+        query["bool"]["must"].append({
+            "match": {
+                "symbol": symbol
+            }
+        })
     resp = client.search(
         index="anomalies_test",
         from_=0,
         size=10000,
-        query={
-            "range": {
-                "timestamp": {
-                    "gte": start_date,
-                    "lte": end_date
-                }
-            }
-        },
+        query=query
     )
     
     return resp
-
 
 
 
