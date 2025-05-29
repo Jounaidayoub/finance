@@ -37,7 +37,7 @@ def detect(price):
 
     redis=Connection.get_redis()
     redis_key="last_10_prices"
-    redis.lpush(redis_key, price[4])
+    redis.lpush(redis_key, price['close'])
     redis.ltrim(redis_key, 0, 9)
     
     
@@ -48,9 +48,9 @@ def detect(price):
     max_=max(last_10)
     
     print(type(max_))
-    print(type(price[4]))
+    print(type(price['close']))
     
-    drop=(float(max_)- float(price[4]))/float(max_)*100
+    drop=(float(max_)- float(price['close']))/float(max_)*100
     
    
     window=last_10
@@ -61,32 +61,32 @@ def detect(price):
     std=(sum(((float(x)-mean)**2 for x in window))/len(window))**(1/2)
     
     
-    z_score=(float(price[4])-mean)/std
+    z_score=(float(price['close'])-mean)/std
 
     
-    # z_score=z_score(price[4],last_10)
+    # z_score=z_score(price['close'],last_10)
     # z_score=/
     
     
     
     
     if abs(z_score)>2.5:
-        message=f"🟥ALERT[{drop,"%"}]: Price {price[4]} has a high z_score {z_score}"
+        message=f"🟥ALERT[{drop,"%"}]: Price {price['close']} has a high z_score {z_score}"
         # from elasticsearch import Elasticsearch
         # from datetime import datetime
         # es=Elasticsearch("http://localhost:9200",
         #              # http_auth=("elastic", "password"),
         #              )
         es=Connection.get_elasticsearch()
-        formatted_date=datetime.strptime(price[0], "%Y-%m-%d %H:%M:%S")
+        formatted_date=datetime.strptime(price['timestamp'], "%Y-%m-%d %H:%M:%S")
         es.index(index="anomalies_test", document={
             "symbol": "TSLA",
-            "price": price[4],
+            "price": price['close'],
             "timestamp": formatted_date.isoformat(),
             "alert_type": "drop",
             "drop_percentage": drop,
             "timestamp_detection": datetime.now().isoformat(),
-            "data_point": price[4],
+            "data_point": price['close'],
             "full_record": price,
             "details": {
                 "z_score": z_score,
@@ -102,7 +102,7 @@ def detect(price):
     
     
     
-    return f"💹 Price {price[4]} is within the normal range , the Z_score : {z_score}"
+    return f"💹 Price {price['close']} is within the normal range , the Z_score : {z_score}"
     
 # @app.
     
@@ -127,9 +127,12 @@ def generate_report():
     
     
     
-app.conf.beat_schedule = {
-    'write-json-every-minute': {
-        'task': 'tasks.generate_report',
-        'schedule': 30.0,  # seconds
-    },
-}
+#uncomeent this fir the scjeduler
+
+    
+# app.conf.beat_schedule = {
+#     'write-json-every-minute': {
+#         'task': 'tasks.generate_report',
+#         'schedule': 30.0,  # seconds
+#     },
+# }
