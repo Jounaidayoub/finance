@@ -8,7 +8,7 @@ from kafka import KafkaProducer
 import json
 
 
-csv_file_path = 'TSLA_1min_sample.csv'
+csv_file_path = 'NFLX_1min_sample.csv'
 
 producer = KafkaProducer(bootstrap_servers='localhost:9092',
                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))
@@ -35,7 +35,7 @@ for i in range(len(data)):
     # else:
     #     print("       ", end='\n')
     
-    data[i]['symbol'] = 'TSLA'
+    data[i]['symbol'] = 'NFXL'
     producer.send('tsla-data', value=[data[i], diff])
     # if abs(diff) > 1.5:
     #     producer.send('alert', value=diff)
@@ -47,7 +47,7 @@ for i in range(len(data)):
     prev = round(prev, 2)
     # data[i]['symbol'] ='TSLA' 
     # print(data[i])
-    sleep(1)  # Sleep for 1 minute between each line of data
+    sleep(1/100000)  # Sleep for 1 minute between each line of data
     # os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console for the next line
 
 producer.flush()
