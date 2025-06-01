@@ -2,6 +2,17 @@ version: '3.8' # Specifies the docker-compose version
 
 services:
   
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    ports:
+      - 9080:9000
+    environment:
+      KAFKA_BROKERCONNECT: 127.0.0.1:9092
+      # JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+      SERVER_SERVLET_CONTEXTPATH: "/"
+    depends_on:
+      - kafka
+      
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.2 # Use a specific version of the Zookeeper image
     container_name: zookeeper

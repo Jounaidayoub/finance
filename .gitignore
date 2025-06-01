@@ -9,3 +9,8 @@ diagrams
 .clinerules
 project_journal.md
 project_progress.md
+
+
+*.pdf
+*.csv
+*.log
