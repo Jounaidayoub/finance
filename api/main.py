@@ -53,6 +53,8 @@ def anomalies(from_: str=Query(alias="from"), to: str=Query(alias="to")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching anomalies: {str(e)}")
     return response
+
+
 @app.get("/alerts/{symbol}/")
 def get_anomalies_by_symbol(symbol: str, from_: str=Query(alias="from"), to: str=Query(alias="to")):
     """
@@ -64,16 +66,16 @@ def get_anomalies_by_symbol(symbol: str, from_: str=Query(alias="from"), to: str
     """
     try:
         resp = get_anomalies(from_, to, symbol=symbol)
-        # response={
-        #     "from": from_,
-        #     "to": to,
-        #     "symbol": 'all',
-        #     "hits": resp['hits']['total']['value'],
-        #     "anomalies": resp['hits']['hits']['_source'],
-        # }
+        response={
+            "from": from_,
+            "to": to,
+            "symbol": 'all',
+            "hits": resp['hits']['total']['value'],
+            "anomalies": resp['hits']['hits'],
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching anomalies for {symbol}: {str(e)}")
-    return resp
+    return response
 
 @app.get("/reports/pdf")
 def get_pdf_report(from_: str=Query(alias="from"), to: str=Query(alias="to",default=None), symbol: str=None):

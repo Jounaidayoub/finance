@@ -146,6 +146,7 @@ def generate_report(start_date="2025-04-01T00:00:00", end_date=None, symbol=None
     result = response.json()
     try:
         
+        
         report_filename = make_PDF(result)
     except Exception as e:
         raise Exception(f"Error generating PDF report: {str(e)}")
