@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 # import generate 
 from enum import Enum
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 class FORMAT(Enum):
@@ -14,7 +16,7 @@ class FORMAT(Enum):
 
 class ReportData(BaseModel):
     """Data model for report generation."""
-    anomalies: list = Field(..., description="List of detected anomalies")
+    anomalies: list[dict[str, Any]] = Field(..., description="List of detected anomalies")
     symbol: str = Field(None, description="Stock symbol for the report")
     from_date: str = Field(..., description="Start date for the report in ISO format")
     to_date: str = Field(..., description="End date for the report in ISO format")
@@ -24,18 +26,18 @@ class ReportData(BaseModel):
 
 class ReportGenerator(ABC):
     @abstractmethod
-    def generate_report(self, data):
+    def generate_report(self, data:ReportData):
         """Generate a report based on the provided data."""
         pass
     
     
 class PDFReportGenerator(ReportGenerator):
-    def generate_report(self, data):
+    def generate_report(self, data:ReportData):
         """Generate a PDF report from the provided data."""
         return make_PDF(data)
 
 class CSVReportGenerator(ReportGenerator):
-    def generate_report(self, data):
+    def generate_report(self, data:ReportData):
         """Generate a CSV report from the provided data."""
         # Placeholder for CSV generation logic
         raise NotImplementedError("CSV report generation not implemented yet.")
@@ -59,7 +61,8 @@ class ReportFactory:
         elif format == FORMAT.CSV:
             return CSVReportGenerator()
         else:
-            raise ValueError(f"Unsupported report format: {format}")
+            raise Exception(f"Unsupported report format: {format}")
+        
 
 
 
@@ -142,7 +145,7 @@ import os
 
 from io import BytesIO
 from datetime import datetime
-def make_PDF(data):
+def make_PDF(data:ReportData):
     """
     Generate a PDF report from the provided data.
     Args:
@@ -152,9 +155,9 @@ def make_PDF(data):
         str: Path to the generated PDF file.
     """
     
-    symbol = data.get('symbol', None)
-    start_date = data.get('from')
-    end_date = data.get('to')
+    symbol = data.symbol
+    start_date = data.from_date
+    end_date = data.to_date
     
     
     
@@ -226,7 +229,7 @@ def make_PDF(data):
         # print(anomalies)
         # print(f"Extracted {len(anomalies)} anomalies from the data.")
         # print(data)
-        anomalies = [anomaly['_source'] for anomaly in data['anomalies']]
+        anomalies = [anomaly['_source'] for anomaly in data.anomalies]
     except Exception as e:
         print(f"Error extracting anomalies: {e}")
         raise Exception("Invalid data format for anomalies extraction")
