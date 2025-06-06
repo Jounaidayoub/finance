@@ -1,10 +1,67 @@
 from elasticsearch import Elasticsearch
-
+from abc import ABC, abstractmethod
 # from airflow_ import tasks____
 # import generate 
+from enum import Enum
+
+from pydantic import BaseModel, Field
+
+class FORMAT(Enum):
+    """Enumeration for report formats."""
+    PDF = "pdf"
+    CSV = "csv"
 
 
+class ReportData(BaseModel):
+    """Data model for report generation."""
+    anomalies: list = Field(..., description="List of detected anomalies")
+    symbol: str = Field(None, description="Stock symbol for the report")
+    from_date: str = Field(..., description="Start date for the report in ISO format")
+    to_date: str = Field(..., description="End date for the report in ISO format")
 # import os
+
+# making the reports service
+
+class ReportGenerator(ABC):
+    @abstractmethod
+    def generate_report(self, data):
+        """Generate a report based on the provided data."""
+        pass
+    
+    
+class PDFReportGenerator(ReportGenerator):
+    def generate_report(self, data):
+        """Generate a PDF report from the provided data."""
+        return make_PDF(data)
+
+class CSVReportGenerator(ReportGenerator):
+    def generate_report(self, data):
+        """Generate a CSV report from the provided data."""
+        # Placeholder for CSV generation logic
+        raise NotImplementedError("CSV report generation not implemented yet.")
+
+class ReportService:
+    def __init__(self, generator: ReportGenerator):
+        self.generator = generator
+
+    def create_report(self, data: ReportData,format: str):
+        """Create a report using the specified generator."""
+        return self.generator.generate_report(data.model_dump())
+
+
+class ReportFactory:
+    #
+    @staticmethod
+    def get_report_generator(format: FORMAT) -> ReportGenerator:
+        """Factory method to get the appropriate report generator."""
+        if format == FORMAT.PDF:
+            return PDFReportGenerator()
+        elif format == FORMAT.CSV:
+            return CSVReportGenerator()
+        else:
+            raise ValueError(f"Unsupported report format: {format}")
+
+
 
 
 def get_anomalies(start_date, end_date, client=None, symbol=None):
