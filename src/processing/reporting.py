@@ -40,7 +40,28 @@ class CSVReportGenerator(ReportGenerator):
     def generate_report(self, data:ReportData):
         """Generate a CSV report from the provided data."""
         # Placeholder for CSV generation logic
-        raise NotImplementedError("CSV report generation not implemented yet.")
+        filepath=f'{data.from_date}_{data.to_date}_{data.symbol}.csv'
+        try:
+            
+            with open(filepath,mode='a') as report:
+                
+                header="timestamp,symbol,price,alert_type,z_score \n"
+                
+                report.write(header)
+                
+                # write the data
+                
+                data.anomalies=[record["_source"] for record in data.anomalies]
+                for anomaly in data.anomalies:
+                    record1=f"{anomaly['timestamp']},{anomaly['symbol']},{anomaly['price']},{anomaly['alert_type']},{anomaly['details']['z_score']} \n"
+                    # record=f"'timestamp': {anomaly['timestamp']}, 'open': {anomaly['open']}, 'high': {anomaly['high']}, 'low': {anomaly['low']}, 'close': {anomaly['close']}, 'volume': {anomaly['volume']}, 'symbol': all "
+                    report.write(record1)
+            
+        except Exception as e:
+            raise Exception(f"Error while opening the file to  generate the csv ")  
+                
+        return filepath        
+        
 
 class ReportService:
     def __init__(self, generator: ReportGenerator):
