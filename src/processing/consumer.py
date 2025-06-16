@@ -3,6 +3,7 @@ import json
 from tasks import detect
 
 from Connection import Connection
+from detection_factory import DetectionAlgorithmFactory
 
 from utils import put_to_index
 
@@ -23,6 +24,8 @@ for message in consumer:
         
         
     
+    # Use the factory to get the detection algorithm and then call the Celery task
+    # The detect task now expects the price directly, and the factory logic is inside the task
     detect.delay(message.value[0])
     
     
