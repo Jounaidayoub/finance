@@ -4,9 +4,9 @@ from abc import ABC, abstractmethod
 # import generate 
 from enum import Enum
 
-from typing import Any
+from typing import Any , Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field 
 
 class FORMAT(Enum):
     """Enumeration for report formats."""
@@ -17,7 +17,7 @@ class FORMAT(Enum):
 class ReportData(BaseModel):
     """Data model for report generation."""
     anomalies: list[dict[str, Any]] = Field(..., description="List of detected anomalies")
-    symbol: str = Field(None, description="Stock symbol for the report")
+    symbol:  Optional[str]  = Field(None, description="Stock symbol for the report")
     from_date: str = Field(..., description="Start date for the report in ISO format")
     to_date: str = Field(..., description="End date for the report in ISO format")
 # import os
@@ -177,6 +177,7 @@ def make_PDF(data:ReportData):
     """
     
     symbol = data.symbol
+    
     start_date = data.from_date
     end_date = data.to_date
     
@@ -230,7 +231,8 @@ def make_PDF(data:ReportData):
     elements.append(Spacer(1, 20))
 
     # Add title
-    title = Paragraph(f"Stock Anomaly Detection Report", styles['Title'])
+    title_text = f"Stock Anomaly Detection Report for {'All stocks' if symbol is None else symbol}"
+    title = Paragraph(title_text, styles['Title'])
     elements.append(title)
 
     # Add date range
