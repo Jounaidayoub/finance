@@ -196,7 +196,7 @@ def make_PDF(data:ReportData):
         pdf_filename,
         pagesize=landscape(letter),
         title=f"Stock Anomaly Report: {start_date} to {end_date}",
-        author="TSLA Analytics, Inc.",
+        author="Anomalies service",
         subject=f"Stock Price Anomalies: {start_date} to {end_date}",
         keywords="stocks, anomalies, analytics"
     )
@@ -222,9 +222,9 @@ def make_PDF(data:ReportData):
 
         
     # Add company header
-    elements.append(Paragraph("TSLA Analytics, Inc.", styles['CompanyName']))
+    elements.append(Paragraph("Finance Anomalies.", styles['CompanyName']))
     elements.append(Paragraph("Financial Anomaly Detection Service", styles['Heading2']))
-    elements.append(Paragraph("Email: contact@tsla-analytics.com | Phone: +1 (555) 123-4567", styles['ContactInfo']))
+    elements.append(Paragraph("Email: contact@finance.com | Phone: +1 1234560000", styles['ContactInfo']))
 
     # Add a line
     elements.append(Spacer(1, 20))
