@@ -1,11 +1,11 @@
 from kafka import KafkaConsumer,KafkaProducer
 import json
-from tasks import detect
+from src.processing.tasks import detect
 
-from Connection import Connection
-from detection_factory import DetectionAlgorithmFactory
+from src.processing.Connection import Connection
+from src.processing.detection_factory import DetectionAlgorithmFactory
 
-from utils import put_to_index
+from src.processing.utils import put_to_index
 
 producer = KafkaProducer(bootstrap_servers='localhost:9092',
                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))

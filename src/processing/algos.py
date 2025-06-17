@@ -1,7 +1,12 @@
 from datetime import datetime
 import json
-from Connection import Connection
-from detection_interface import DetectionAlgorithm
+from src.processing.Connection import Connection
+from src.processing.detection_interface import DetectionAlgorithm
+
+from ..alerting.anomaly_alert_manager import AnomalyAlertManager
+
+# Instantiate the AnomalyAlertManager
+anomaly_manager = AnomalyAlertManager(anomaly_threshold=10)
 
 class ZScoreDetectionAlgorithm(DetectionAlgorithm):
     def detect(self, price):
@@ -14,7 +19,7 @@ class ZScoreDetectionAlgorithm(DetectionAlgorithm):
 
         last_10 = redis.lrange(redis_key, 0, -1)
 
-        print(f"Last 10 prices for {symbol}: {last_10}")
+        # print(f"Last 10 prices for {symbol}: {last_10}")
 
         if len(last_10) > 1:
             prev_price = float(last_10[1])
@@ -35,7 +40,7 @@ class ZScoreDetectionAlgorithm(DetectionAlgorithm):
             message = f"{price['symbol']}{'🟩' if alert_type == 'rise' else '🟥'}ALERT[{change_pct:+.2f}%]: Price {price['close']} has a high z_score {z_score}"
             es = Connection.get_elasticsearch()
             formatted_date = datetime.strptime(price['timestamp'], "%Y-%m-%d %H:%M:%S")
-            es.index(index="anomalies_test", document={
+            anomaly_document = {
                 "symbol": price['symbol'],
                 "price": price['close'],
                 "timestamp": formatted_date.isoformat(),
@@ -49,7 +54,9 @@ class ZScoreDetectionAlgorithm(DetectionAlgorithm):
                     "mean": mean,
                     "std_dev": std
                 }
-            })
+            }
+            es.index(index="anomalies_test", document=anomaly_document)
+            anomaly_manager.process_anomaly(anomaly_document) # Process anomaly for email alerts
             producer.send("alerts", value=message)
             producer.flush()
             return f"{'🟩' if alert_type == 'rise' else '🟥'} ALERT : Price {price} has been sent to the alerts topic"
@@ -86,7 +93,7 @@ class SMADetectionAlgorithm(DetectionAlgorithm):
                 message = f"{price['symbol']}{'🟩' if alert_type == 'rise' else '🟥'}ALERT[{deviation_pct:.2f}% deviation]: Price {current_price} deviates significantly from SMA {sma:.2f}"
                 
                 formatted_date = datetime.strptime(price['timestamp'], "%Y-%m-%d %H:%M:%S")
-                es.index(index="anomalies_test", document={
+                anomaly_document = {
                     "symbol": price['symbol'],
                     "price": price['close'],
                     "timestamp": formatted_date.isoformat(),
@@ -100,7 +107,9 @@ class SMADetectionAlgorithm(DetectionAlgorithm):
                         "deviation_pct": deviation_pct,
                         "deviation_threshold": DEVIATION_THRESHOLD_PERCENT
                     }
-                })
+                }
+                es.index(index="anomalies_test", document=anomaly_document)
+                anomaly_manager.process_anomaly(anomaly_document) # Process anomaly for email alerts
                 producer.send("alerts", value=message)
                 producer.flush()
                 return f"{'🟩' if alert_type == 'rise' else '🟥'} ALERT : Price {price['close']} has deviated significantly from SMA and sent to alerts topic"

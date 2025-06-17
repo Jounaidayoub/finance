@@ -7,10 +7,10 @@ from datetime import datetime
 from google import genai
 # from airflow_ import tasks____
 # import generate 
-from reporting import get_anomalies
-from reporting import make_PDF
-from Connection import Connection
-from detection_factory import DetectionAlgorithmFactory
+from src.processing.reporting import get_anomalies
+from src.processing.reporting import make_PDF
+from src.processing.Connection import Connection
+from src.processing.detection_factory import DetectionAlgorithmFactory
 # from json import dumps
 # import json
 # from datetime import datetime

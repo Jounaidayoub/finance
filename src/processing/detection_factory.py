@@ -1,4 +1,4 @@
-from algos import ZScoreDetectionAlgorithm, SMADetectionAlgorithm
+from src.processing.algos import ZScoreDetectionAlgorithm, SMADetectionAlgorithm
 
 class DetectionAlgorithmFactory:
     @staticmethod
