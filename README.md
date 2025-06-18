@@ -8,7 +8,7 @@ This project aims to build a robust and highly performant system for monitoring 
 
 The system employs a distributed, event-driven architecture, leveraging microservices for scalability, resilience, and maintainability. It ensures decoupling, asynchronous processing, and real-time capabilities.
 
-![architecture](./assets/final-1.svg)
+![architecture](https://raw.githubusercontent.com/Jounaidayoub/finance/master/assets/final-1.svg)
 
 
 
