@@ -34,8 +34,8 @@ flowchart TB
   end
  subgraph subGraph1["Batch Processing & Reporting"]
     direction TB
-        F["Airflow"]
-        G{{"Batch Analysis Task"}}
+        F["Celery Beat"]
+        G{{"Batch reporting"}}
         H["📆 Daily/Monthly... Reports"]
   end
  subgraph subGraph2["API Access"]
