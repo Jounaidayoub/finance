@@ -1,6 +1,6 @@
 # Project: Real-time Financial Data Surveillance and Alerting
 
-## 1. Project Goal
+## 1. Project Goal 
 
 To build a system that monitors real-time financial data streams (stocks, crypto), detects predefined anomalies (e.g., significant price drops within a short time window), triggers alerts, stores historical data for analysis, and provides an API and periodic reports.
 
