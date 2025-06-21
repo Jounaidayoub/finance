@@ -13,7 +13,7 @@ import os
 from google import genai
 # from airflow_ import tasks____
 # import generate 
-from src.processing.reporting import get_anomalies, ReportData, ReportFactory, FORMAT
+from src.processing.reporting import get_anomalies,get_elastic_docs,get_elastic_raw_data_with_scroll,  ReportData, ReportFactory, FORMAT
 from src.processing.reporting import make_PDF
 from src.processing.Connection import Connection
 from src.processing.detection_factory import DetectionAlgorithmFactory
@@ -36,6 +36,9 @@ app = Celery("tasks",
 
 
 # es=Elasticsearch("http://localhost:9200")
+
+
+
 
 
 @app.task
@@ -93,7 +96,7 @@ def generate_report(start_date="2025-04-01T00:00:00", end_date=None, symbol=None
     return report_filename
     
 @app.task
-def generate_and_send_report_async(from_date: str, to_date: str = None, symbol: str = None, report_format: str = "pdf", recipient_email: str = None):
+def generate_and_send_report_async(from_date: str, to_date: str = None, symbol: str = None, report_format: str = "pdf", recipient_email: str = None,raw=False):
     """
     Asynchronously generates a report and sends it via email.
 
@@ -106,9 +109,15 @@ def generate_and_send_report_async(from_date: str, to_date: str = None, symbol: 
     """
     if to_date is None:
         to_date = datetime.now().isoformat()
-
+    print("all the paramters",from_date,to_date)
     try:
-        elastic_response = get_anomalies(from_date, to_date, symbol=symbol)
+        
+        # elastic_response = get_anomalies(from_date, to_date, symbol=symbol)
+        if raw:
+            elastic_response = get_elastic_raw_data_with_scroll(from_date, to_date, symbol=symbol,Index="raw")
+        else:
+            elastic_response = get_elastic_docs(from_date, to_date, symbol=symbol)
+        
         anomalies = elastic_response['hits']['hits']
         if not anomalies or len(anomalies) == 0:
             print(f"No anomalies found for symbol {symbol} between {from_date} and {to_date}. Report not generated.")
@@ -122,14 +131,17 @@ def generate_and_send_report_async(from_date: str, to_date: str = None, symbol: 
         )
 
         generator = ReportFactory.get_report_generator(FORMAT(report_format))
-        report_path = generator.generate_report(data)
+        
+        report_path = generator.generate_report(data) if not raw else generator.generate_raw_report(data)
 
         if report_path and recipient_email:
-            subject = f"Anomaly Report: {from_date} to {to_date}"
-            body = f"Please find attached the anomaly report for the period {from_date} to {to_date}."
+            report_type = "raw" if raw else "anomaly"
+            subject = f"{report_type} Report: {from_date} to {to_date}"
+            body = f"Please find attached the {report_type} report for the period {from_date} to {to_date}."
             if symbol:
                 subject += f" for {symbol}"
                 body += f" for symbol {symbol}."
+            from time import sleep
             
             send_alert_email(subject, body, recipient=recipient_email, attachment_path=report_path, attachment_filename=os.path.basename(report_path))
             print(f"Report sent to {recipient_email}")

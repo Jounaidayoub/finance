@@ -35,7 +35,7 @@ def read_root():
     }
 
 @app.get("/alerts")
-def anomalies(from_: str=Query(alias="from"), to: str=Query(alias="to")):
+def anomalies(from_: str=Query(alias="from"), to: str=Query(alias="to",default=None)):
     """
     Get all anomalies within a date range.
     
@@ -60,7 +60,7 @@ def anomalies(from_: str=Query(alias="from"), to: str=Query(alias="to")):
 
 
 @app.get("/alerts/{symbol}/")
-def get_anomalies_by_symbol(symbol: str, from_: str=Query(alias="from"), to: str=Query(alias="to")):
+def get_anomalies_by_symbol(symbol: str, from_: str=Query(alias="from"), to: str=Query(alias="to",default=None)):
     """
     Get anomalies for a specific symbol within a date range.
     
@@ -68,6 +68,8 @@ def get_anomalies_by_symbol(symbol: str, from_: str=Query(alias="from"), to: str
     - **from**: Start date in ISO format (e.g., 2025-04-01T00:00:00)
     - **to**: End date in ISO format (e.g., 2025-05-01T00:00:00)
     """
+    # date arithmetic for easier queries: today, yesterday, last_week, last_month, last_year
+    
     try:
         resp = get_anomalies(from_, to, symbol=symbol)
         response={
@@ -82,7 +84,7 @@ def get_anomalies_by_symbol(symbol: str, from_: str=Query(alias="from"), to: str
     return response
 
 
-@app.get("/reports")
+# @app.get("/reports")
 def get_report(from_: str=Query(alias="from"), to: str=Query(alias="to",default=None), symbol: str=None,format: str="pdf"):
     """
     Generate a report of anomalies within the specified date range.
@@ -136,7 +138,7 @@ def get_report(from_: str=Query(alias="from"), to: str=Query(alias="to",default=
     else:
         raise HTTPException(status_code=404, detail="Report generation failed or file not found")
         
-@app.post("/reports/send_async")
+# @app.post("/reports/send_async")
 def send_report_async(
     from_: str = Query(alias="from"),
     to: str = Query(alias="to", default=None),
@@ -168,7 +170,7 @@ def send_report_async(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to initiate report task: {str(e)}")
 
-@app.post("/v1/reports")
+@app.post("/v1/reports/")
 def create_report_unified(
     from_: str = Query(alias="from"),
     to: str = Query(alias="to", default=None),
@@ -188,6 +190,14 @@ def create_report_unified(
     Returns:
         dict or FileResponse: A dictionary with task_id if sent asynchronously, or the report file if generated synchronously.
     """
+    
+    # date arithmetic for easier queries: today, yesterday, last_week, last_month, last_year
+   
+        
+    if not to:
+        to = "now"
+    
+
     if recipient_email:
         try:
             task = generate_and_send_report_async.delay(
@@ -208,7 +218,7 @@ def create_report_unified(
             if not anomalies or len(anomalies) == 0:
                 raise HTTPException(
                     status_code=404,    
-                    detail=f"No anomalies found for symbol {symbol} between {from_} and {to}"
+                    detail=f"No anomalies found for symbol {symbol} between {from_} and {"now" if to is None else to}"
                 )
             
             data = ReportData(
@@ -269,7 +279,50 @@ def get_report_task_status(task_id: str):
         }
     return response
 
-@app.get("/reports/pdf")
+
+# this for raw data
+@app.post("/raw")
+def create_report_row(
+    from_: str = Query(alias="from"),
+    to: str = Query(alias="to", default=None),
+    symbol: str = None,
+    format: str = "pdf",
+    recipient_email: str = Query(..., alias="recipient_email")  # Making it required
+):
+    """
+    Create a report for raw data points which may be large, always sent via email.
+
+    - **from**: Start date in ISO format (e.g., 2025-04-01T00:00:00)
+    - **to**: End date in ISO format (e.g., 2025-05-01T00:00:00)
+    - **symbol**: Optional stock symbol to filter by (e.g., TSLA)
+    - **format**: Report format (default is "pdf")
+    - **recipient_email**: Email address to send the report to (required)
+
+    Returns:
+        dict: A dictionary with task_id for the asynchronous report generation task
+    """
+    if not recipient_email:
+        raise HTTPException(
+            status_code=400, 
+            detail="Email address is required for raw data reports due to potential large size"
+        )
+    
+    # Always process as asynchronous email delivery
+    try:
+        task = generate_and_send_report_async.delay(
+            from_date=from_,
+            to_date=to,
+            symbol=symbol,
+            report_format=format,
+            recipient_email=recipient_email,
+            raw=True  # Indicating this is for raw data
+        )
+        return {"task_id": task.id, "message": "Report generation initiated. You will receive the report via email."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initiate report task: {str(e)}")
+
+
+# @app.get("/reports/pdf")
 def get_pdf_report(from_: str=Query(alias="from"), to: str=Query(alias="to",default=None), symbol: str=None):
     """
        **DEPRECATED**: Use /reports?format=pdf instead.

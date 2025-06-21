@@ -8,18 +8,20 @@ from ..alerting.anomaly_alert_manager import AnomalyAlertManager
 # Instantiate the AnomalyAlertManager
 anomaly_manager = AnomalyAlertManager(anomaly_threshold=10)
 
+
+from src.processing.utils import put_to_index
+
 class ZScoreDetectionAlgorithm(DetectionAlgorithm):
     def detect(self, price):
         producer = Connection.getproducer()
         redis = Connection.get_redis()
+        es = Connection.get_elasticsearch()
         symbol = price.get('symbol', 'N/A')
         redis_key = f"last_10_prices_{symbol}"
         redis.lpush(redis_key, price['close'])
         redis.ltrim(redis_key, 0, 9)
 
         last_10 = redis.lrange(redis_key, 0, -1)
-
-        # print(f"Last 10 prices for {symbol}: {last_10}")
 
         if len(last_10) > 1:
             prev_price = float(last_10[1])
@@ -34,11 +36,10 @@ class ZScoreDetectionAlgorithm(DetectionAlgorithm):
         mean = sum(float(x) for x in window) / len(window)
         std = (sum(((float(x) - mean) ** 2 for x in window)) / len(window)) ** (1 / 2)
 
-        z_score = (float(price['close']) - mean) / std
+        z_score = (float(price['close']) - mean) / std if std != 0 else 0.0
 
         if abs(z_score) > 2.5 and alert_type:
             message = f"{price['symbol']}{'🟩' if alert_type == 'rise' else '🟥'}ALERT[{change_pct:+.2f}%]: Price {price['close']} has a high z_score {z_score}"
-            es = Connection.get_elasticsearch()
             formatted_date = datetime.strptime(price['timestamp'], "%Y-%m-%d %H:%M:%S")
             anomaly_document = {
                 "symbol": price['symbol'],
@@ -56,12 +57,14 @@ class ZScoreDetectionAlgorithm(DetectionAlgorithm):
                 }
             }
             es.index(index="anomalies_test", document=anomaly_document)
-            anomaly_manager.process_anomaly(anomaly_document) # Process anomaly for email alerts
+            # anomaly_manager.process_anomaly(anomaly_document) # Process anomaly for email alerts
             producer.send("alerts", value=message)
             producer.flush()
+            put_to_index(price, client=es)
             return f"{'🟩' if alert_type == 'rise' else '🟥'} ALERT : Price {price} has been sent to the alerts topic"
-
-        return f"💹 Price {price['close']} is within the normal range , the Z_score : {z_score}"
+        else:
+            put_to_index(price, client=es)
+            return f"💹 Price {price['close']} is within the normal range , the Z_score : {z_score}"
 
 class SMADetectionAlgorithm(DetectionAlgorithm):
     def detect(self, price):

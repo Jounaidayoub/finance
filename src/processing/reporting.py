@@ -29,12 +29,24 @@ class ReportGenerator(ABC):
     def generate_report(self, data:ReportData):
         """Generate a report based on the provided data."""
         pass
-    
+    def generate_raw_report(self, data: ReportData):
+        """"Generate a raw report from the provided data."""
+        
     
 class PDFReportGenerator(ReportGenerator):
     def generate_report(self, data:ReportData):
         """Generate a PDF report from the provided data."""
         return make_PDF(data)
+    def generate_raw_report(self, data: ReportData):
+        """
+        Generate a PDF report from raw stock data (not anomalies).
+        Args:
+            data (ReportData): ReportData object containing raw stock data in anomalies field.
+        Returns:
+            str: Path to the generated PDF file.
+        """
+        # Placeholder for raw PDF generation logic
+        raise NotImplementedError("Raw PDF report generation is not implemented yet.")
 
 class CSVReportGenerator(ReportGenerator):
     def generate_report(self, data:ReportData):
@@ -58,10 +70,46 @@ class CSVReportGenerator(ReportGenerator):
                     report.write(record1)
             
         except Exception as e:
-            raise Exception(f"Error while opening the file to  generate the csv ")  
+            raise ValueError(f"Error while opening the file to  generate the csv ")  
                 
         return filepath        
+    
+    def generate_raw_report(self, data: ReportData):
+        """
+        Generate a CSV report from raw stock data (not anomalies).
+        Args:
+            data (ReportData): ReportData object containing raw stock data in anomalies field.
+            filepath (str): Path to save the generated CSV file.
+        Returns:
+            str: Path to the generated CSV file.
+        """
+        if data.symbol is None or data.symbol == "None":
+            data.symbol = "all"
+        filepath=f'{data.from_date}_{data.to_date}_{data.symbol}.csv'
+        try:
+            with open(filepath, mode='w') as report:
+                header = "timestamp,symbol,open,high,low,close,volume\n"
+                report.write(header)
+                # Extract records from _source
+                records = [record["_source"] for record in data.anomalies]
+                for record in records:
+                    row = (
+                        f"{record.get('timestamp','')},"
+                        f"{record.get('symbol','')},"
+                        f"{record.get('open','')},"
+                        f"{record.get('high','')},"
+                        f"{record.get('low','')},"
+                        f"{record.get('close','')},"
+                        f"{record.get('volume','')}\n"
+                    )
+                    report.write(row)
+        except Exception as e:
+            raise Exception(f"Error while generating raw CSV report: {e}")
         
+        return filepath
+     
+    
+    
 
 class ReportService:
     def __init__(self, generator: ReportGenerator):
@@ -141,6 +189,147 @@ def get_anomalies(start_date, end_date, client=None, symbol=None):
 
 
 
+def get_elastic_docs(start_date, end_date, client=None, symbol=None,Index="anomalies_test"):
+    
+    """Get anomalies from Elasticsearch within a date range.
+    
+    Args:
+        start_date (str): Start date in ISO format (e.g., 2025-04-01T00:00:00)
+        end_date (str): End date in ISO format (e.g., 2025-05-01T00:00:00)
+        client (Elasticsearch, optional): Elasticsearch client. If None, a new client is created.
+        symbol (str, optional): Stock symbol to filter by
+        Indxe if not provide we will look for anomalies
+    
+    Returns:
+        dict: Elasticsearch response containing matching anomalies
+    """
+    if client is None:
+        client = Elasticsearch(
+            hosts=["http://localhost:9200"],
+        )
+    
+    # Build the query
+    query = {
+        "bool": {
+            "must": [
+                {
+                    "range": {
+                        "timestamp": {
+                            "gte": start_date,
+                            "lte": end_date
+                        }
+                    }
+                }
+            ]
+        }
+    }
+    
+ 
+    if symbol:
+        query["bool"]["must"].append({
+            "match": {
+                "symbol": symbol
+            }
+        })
+    
+    resp = client.search(
+        index=Index,
+        from_=0,
+        size=10000,
+        query=query,
+    )
+    
+    return resp 
+
+
+def get_elastic_raw_data_with_scroll(start_date, end_date, client=None, symbol=None, Index="raw_data_index", scroll_timeout="2m"):
+    """
+    Get raw data from Elasticsearch within a date range using the scroll API for large datasets.
+
+    Args:
+        start_date (str): Start date in ISO format (e.g., 2025-04-01T00:00:00)
+        end_date (str): End date in ISO format (e.g., 2025-05-01T00:00:00)
+        client (Elasticsearch, optional): Elasticsearch client. If None, a new client is created.
+        symbol (str, optional): Stock symbol to filter by
+        Index (str): The Elasticsearch index to search in. Defaults to "raw_data_index".
+        scroll_timeout (str): How long the scroll context should be maintained. Defaults to "2m".
+
+    Returns:
+        dict: Elasticsearch response containing all matching documents, mimicking the structure of get_elastic_docs.
+    """
+    if client is None:
+        client = Elasticsearch(
+            hosts=["http://localhost:9200"],
+        )
+
+    query = {
+        "bool": {
+            "must": [
+                {
+                    "range": {
+                        "timestamp": {
+                            "gte": start_date,
+                            "lte": end_date
+                        }
+                    }
+                }
+            ]
+        }
+    }
+
+    if symbol:
+        query["bool"]["must"].append({
+            "match": {
+                "symbol": symbol
+            }
+        })
+
+    all_hits = []
+    scroll_id = None
+    total_hits = 0
+
+    # Initial search request with scroll
+    response = client.search(
+        index=Index,
+        scroll=scroll_timeout,
+        query=query,
+        size=10000 # Fetch 10,000 documents per scroll
+    )
+
+    while True:
+        scroll_id = response.get('_scroll_id')
+        hits = response.get('hits', {}).get('hits', [])
+        total_hits = response.get('hits', {}).get('total', {}).get('value', 0) # Get total hits from initial response
+
+        if not hits:
+            break
+        
+        all_hits.extend(hits)
+
+        # Continue scrolling
+        response = client.scroll(
+            scroll_id=scroll_id,
+            scroll=scroll_timeout
+        )
+
+    # Clear the scroll context
+    if scroll_id:
+        client.clear_scroll(scroll_id=scroll_id)
+
+    # Format the output to match get_elastic_docs
+    return {
+        "took": response.get("took", 0),
+        "timed_out": response.get("timed_out", False),
+        "_shards": response.get("_shards", {}),
+        "hits": {
+            "total": {
+                "value": total_hits,
+                "relation": "eq"
+            },
+            "max_score": response.get("hits", {}).get("max_score"),
+            "hits": all_hits
+        }
+    }
 
 
 # print(get_anomalies("2025-05-14T05:00:00.000Z","now"))
